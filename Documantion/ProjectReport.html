@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoParcel - Interactive Project Report</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#0f172a',  // Slate 900
+                            primary: '#6366f1', // Indigo 500
+                            secondary: '#ec4899', // Pink 500
+                            accent: '#06b6d4', // Cyan 500
+                            surface: 'rgba(255, 255, 255, 0.7)',
+                            glass: 'rgba(255, 255, 255, 0.25)',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'page-enter': 'pageEnter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        // New Complex Transition Animation
+                        pageEnter: {
+                            '0%': {
+                                opacity: '0',
+                                transform: 'translateY(15px) scale(0.98)',
+                                filter: 'blur(4px)'
+                            },
+                            '100%': {
+                                opacity: '1',
+                                transform: 'translateY(0) scale(1)',
+                                filter: 'blur(0)'
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .glass-panel:hover {
+            box-shadow: 0 15px 45px 0 rgba(31, 38, 135, 0.15);
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #invoice-modal, #invoice-modal * { visibility: visible; }
+            #invoice-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; display: block !important; z-index: 9999; }
+            .no-print { display: none !important; }
+        }
+
+        /* Staggered Animation Delays for inner content */
+        .stagger-1 { animation-delay: 0.1s; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-2 { animation-delay: 0.2s; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-3 { animation-delay: 0.3s; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-4 { animation-delay: 0.4s; opacity: 0; animation-fill-mode: forwards; }
+
+        /* Initial hidden state for staggered items */
+        .animate-page-enter .stagger-1,
+        .animate-page-enter .stagger-2,
+        .animate-page-enter .stagger-3,
+        .animate-page-enter .stagger-4 {
+            animation-name: pageEnter;
+            animation-duration: 0.6s;
+            animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Code block styling */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            border-left: 4px solid #6366f1;
+        }
+
+        /* Diagram Utilities */
+        .diagram-box {
+            border: 2px solid #cbd5e1;
+            background: white;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+        .diagram-box:hover {
+            transform: scale(1.05);
+            z-index: 20;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Flowchart Shapes */
+        .shape-oval { border-radius: 50px; background-color: #ecfdf5; border-color: #34d399; } /* Start/End */
+        .shape-rect { border-radius: 4px; background-color: #eff6ff; border-color: #60a5fa; } /* Process */
+        .shape-para { transform: skew(-20deg); background-color: #fff7ed; border-color: #fb923c; } /* I/O */
+        .shape-para > div { transform: skew(20deg); }
+        .shape-diamond { transform: rotate(45deg); width: 80px; height: 80px; background-color: #fefce8; border-color: #facc15; } /* Decision */
+        .shape-diamond > div { transform: rotate(-45deg); font-size: 0.7rem; }
+
+        /* DFD Specifics */
+        .dfd-process { border-radius: 12px; background-color: #f0f9ff; border: 2px solid #0ea5e9; }
+        .dfd-entity { border-radius: 0; background-color: #f1f5f9; border: 2px solid #475569; }
+        .dfd-store {
+            border: 2px solid #64748b;
+            border-right: none;
+            background: #fff;
+            position: relative;
+        }
+        .dfd-store::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; right: 5px;
+            width: 2px;
+            background-color: #64748b;
+        }
+
+        /* Connectors */
+        .arrow-down::after {
+            content: '▼';
+            position: absolute;
+            bottom: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #94a3b8;
+            font-size: 10px;
+        }
+        .arrow-right::after {
+            content: '►';
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen overflow-hidden flex selection:bg-brand-primary selection:text-white">
+
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-brand-primary/20 rounded-full blur-3xl animate-float opacity-60"></div>
+        <div class="absolute bottom-[-10%] right-[-5%] w-80 h-80 bg-brand-secondary/20 rounded-full blur-3xl animate-float opacity-60" style="animation-delay: 2s;"></div>
+        <div class="absolute top-[40%] left-[40%] w-72 h-72 bg-brand-accent/20 rounded-full blur-3xl animate-float opacity-60" style="animation-delay: 1s;"></div>
+    </div>
+
+    <aside class="w-20 lg:w-64 glass-nav z-20 flex flex-col transition-all duration-300 shadow-2xl backdrop-blur-xl">
+        <div class="p-6 flex items-center justify-center lg:justify-start gap-3 border-b border-white/10">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center text-white shadow-lg shrink-0 animate-pulse-slow">
+                <i class="fas fa-bolt text-lg"></i>
+            </div>
+            <div class="hidden lg:block">
+                <h1 class="font-display font-bold text-white text-xl leading-tight tracking-wide">Go<span class="text-brand-accent">Parcel</span></h1>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-6 space-y-2 px-3">
+            <div class="px-3 mb-2 hidden lg:block text-xs font-bold text-slate-500 uppercase tracking-wider font-display opacity-75">Report & Docs</div>
+
+            <button onclick="navTo('home')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group active-nav hover:translate-x-1" id="nav-home">
+                <i class="fas fa-home w-5 text-center group-hover:text-brand-accent transition-colors"></i>
+                <span class="hidden lg:block font-medium">Overview & Goals</span>
+            </button>
+
+            <button onclick="navTo('tech')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-tech">
+                <i class="fas fa-layer-group w-5 text-center group-hover:text-brand-secondary transition-colors"></i>
+                <span class="hidden lg:block font-medium">Tech Architecture</span>
+            </button>
+
+            <button onclick="navTo('diagrams')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-diagrams">
+                <i class="fas fa-project-diagram w-5 text-center group-hover:text-purple-400 transition-colors"></i>
+                <span class="hidden lg:block font-medium">System Diagrams</span>
+            </button>
+
+            <button onclick="navTo('docs')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-docs">
+                <i class="fas fa-book w-5 text-center group-hover:text-green-400 transition-colors"></i>
+                <span class="hidden lg:block font-medium">User Guide & Setup</span>
+            </button>
+
+            <div class="px-3 mt-6 mb-2 hidden lg:block text-xs font-bold text-slate-500 uppercase tracking-wider font-display opacity-75">Live Demos</div>
+
+            <button onclick="navTo('dashboard')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-dashboard">
+                <i class="fas fa-chart-pie w-5 text-center group-hover:text-brand-primary transition-colors"></i>
+                <span class="hidden lg:block font-medium">Admin Dashboard</span>
+            </button>
+
+            <button onclick="navTo('operations')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-operations">
+                <i class="fas fa-calculator w-5 text-center group-hover:text-brand-accent transition-colors"></i>
+                <span class="hidden lg:block font-medium">Booking & Pricing</span>
+            </button>
+
+            <button onclick="navTo('tracking')" class="nav-item w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all group hover:translate-x-1" id="nav-tracking">
+                <i class="fas fa-map-marked-alt w-5 text-center group-hover:text-brand-secondary transition-colors"></i>
+                <span class="hidden lg:block font-medium">Live Tracking</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <div class="bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 rounded-xl p-4 border border-white/10 hidden lg:block hover:bg-white/5 transition-colors cursor-help">
+                <h4 class="text-white text-xs font-bold mb-1 font-display">Status</h4>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-slate-300 text-xs">System Online</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 relative z-10 overflow-hidden flex flex-col">
+        <header class="h-16 glass-panel border-b-0 border-x-0 border-t-0 m-4 rounded-2xl flex items-center justify-between px-6 shrink-0 animate-page-enter">
+            <h2 id="page-title" class="font-display font-bold text-2xl text-slate-800 tracking-tight">Project Overview</h2>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-bold text-slate-800">Administrator</p>
+                    <p class="text-xs text-slate-500 font-mono">admin.17193@gmail.com</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-500 shadow-sm hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+            </div>
+        </header>
+
+        <div id="content-container" class="flex-1 overflow-y-auto p-4 lg:p-6 scroll-smooth no-scrollbar pb-20">
+
+            <section id="view-home" class="space-y-6 max-w-6xl mx-auto animate-page-enter">
+                <div class="glass-panel p-8 rounded-3xl relative overflow-hidden group hover:shadow-2xl transition-all duration-500 stagger-1">
+                    <div class="absolute right-0 top-0 w-64 h-64 bg-gradient-to-br from-brand-primary/10 to-transparent rounded-bl-full transition-transform group-hover:scale-110 duration-700"></div>
+                    <div class="relative z-10">
+                        <span class="inline-block px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold mb-4 uppercase tracking-wider font-display">Executive Summary</span>
+                        <h1 class="font-display text-4xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">Digitizing Logistics for the Modern Era</h1>
+                        <p class="text-slate-600 text-lg leading-relaxed max-w-4xl font-light">
+                            The <span class="font-bold text-brand-primary">GoParcel</span> Logistics Management System is a comprehensive full-stack web application designed to revolutionize how small-to-medium courier services operate. By replacing fragmented, manual, and paper-based processes with a centralized digital platform, GoParcel automates critical tasks such as shipment booking, dynamic pricing, and real-time status tracking.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 stagger-2">
+                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-red-400 hover:bg-white/80 transition-colors">
+                        <h3 class="font-display text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle text-red-400 animate-bounce"></i> The Industry Challenge
+                        </h3>
+                        <div class="space-y-4 text-slate-600">
+                            <p>Logistics companies utilizing traditional methods face significant operational bottlenecks. Manual data entry is slow and prone to human error, particularly in complex pricing calculations involving weight, distance, and taxes.</p>
+                            <p>Furthermore, without a digital tracking system, customer transparency is non-existent, leading to high support volumes. Invoicing remains a tedious manual task, delaying revenue collection and financial reporting.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl border-l-4 border-green-400 hover:bg-white/80 transition-colors">
+                        <h3 class="font-display text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-check-circle text-green-400 animate-pulse"></i> The GoParcel Solution
+                        </h3>
+                        <div class="space-y-4 text-slate-600">
+                            <p>GoParcel introduces an <strong>Automated Booking Engine</strong> that instantly calculates costs with zero error margin. It provides a <strong>Live Tracking Dashboard</strong> that offers stakeholders real-time visibility into shipment status.</p>
+                            <p>The system also features an <strong>Auto-Invoicing Module</strong> that generates professional, tax-compliant A4 invoices instantly, streamlining the financial workflow and enhancing brand professionalism.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-3">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-6">Strategic Objectives</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all hover:scale-105 cursor-default">
+                            <div class="w-12 h-12 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-3 text-xl shadow-md">
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-700 font-display text-lg">Zero-Error Pricing</h4>
+                            <p class="text-sm text-slate-500 mt-2">Algorithm-based cost calculation.</p>
+                        </div>
+                        <div class="text-center p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all hover:scale-105 cursor-default">
+                            <div class="w-12 h-12 mx-auto bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-3 text-xl shadow-md">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-700 font-display text-lg">Data Insights</h4>
+                            <p class="text-sm text-slate-500 mt-2">Real-time operational analytics.</p>
+                        </div>
+                        <div class="text-center p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all hover:scale-105 cursor-default">
+                            <div class="w-12 h-12 mx-auto bg-pink-100 text-pink-600 rounded-full flex items-center justify-center mb-3 text-xl shadow-md">
+                                <i class="fas fa-truck-fast"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-700 font-display text-lg">Live Visibility</h4>
+                            <p class="text-sm text-slate-500 mt-2">Visual tracking timelines.</p>
+                        </div>
+                        <div class="text-center p-4 rounded-2xl bg-white/40 hover:bg-white/60 transition-all hover:scale-105 cursor-default">
+                            <div class="w-12 h-12 mx-auto bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center mb-3 text-xl shadow-md">
+                                <i class="fas fa-print"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-700 font-display text-lg">Instant Docs</h4>
+                            <p class="text-sm text-slate-500 mt-2">Automated invoice generation.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-tech" class="hidden space-y-6 max-w-6xl mx-auto">
+                <div class="text-center mb-8 stagger-1">
+                    <h2 class="font-display text-3xl font-bold text-slate-800">System Architecture</h2>
+                    <p class="text-slate-500 mt-2 font-light text-lg">Built on a robust Python-Flask foundation with a modern Glassmorphism frontend.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 stagger-2">
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col items-center text-center hover:scale-105 transition-transform duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-orange-100 text-orange-500 flex items-center justify-center text-3xl mb-4 shadow-lg animate-float" style="animation-delay: 0s;">
+                            <i class="fab fa-html5"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 font-display">Frontend</h3>
+                        <p class="text-sm text-slate-500 mt-2 mb-4 font-mono text-xs">HTML5 / CSS3 / JS</p>
+                        <p class="text-sm text-slate-600 text-left mb-4 leading-relaxed">
+                            Utilizes semantic HTML5 for structure and advanced CSS3 features (Backdrop Filter, Flexbox, Grid) to create the signature "Glassmorphism" aesthetic. Vanilla JavaScript (ES6+) handles all client-side logic and DOM manipulation.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col items-center text-center hover:scale-105 transition-transform duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-500 flex items-center justify-center text-3xl mb-4 shadow-lg animate-float" style="animation-delay: 1s;">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 font-display">Backend</h3>
+                        <p class="text-sm text-slate-500 mt-2 mb-4 font-mono text-xs">Python Flask</p>
+                        <p class="text-sm text-slate-600 text-left mb-4 leading-relaxed">
+                            A lightweight WSGI web application framework. Flask routes API requests, handles business logic, and serves the frontend. It was chosen for its simplicity, scalability, and ease of integration with SQLite.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col items-center text-center hover:scale-105 transition-transform duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-200 text-slate-600 flex items-center justify-center text-3xl mb-4 shadow-lg animate-float" style="animation-delay: 2s;">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 font-display">Database</h3>
+                        <p class="text-sm text-slate-500 mt-2 mb-4 font-mono text-xs">SQLite3</p>
+                        <p class="text-sm text-slate-600 text-left mb-4 leading-relaxed">
+                            A serverless, self-contained SQL database engine. It provides zero-configuration storage, making the application portable and easy to deploy without complex database server setups.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col items-center text-center hover:scale-105 transition-transform duration-300">
+                        <div class="w-16 h-16 rounded-2xl bg-green-100 text-green-500 flex items-center justify-center text-3xl mb-4 shadow-lg animate-float" style="animation-delay: 3s;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 font-display">Communication</h3>
+                        <p class="text-sm text-slate-500 mt-2 mb-4 font-mono text-xs">AJAX & JSON</p>
+                        <p class="text-sm text-slate-600 text-left mb-4 leading-relaxed">
+                            Data is exchanged asynchronously between the frontend and backend using the Fetch API and JSON. This ensures a smooth Single Page Application (SPA) feel without page reloads.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-diagrams" class="hidden space-y-12 max-w-5xl mx-auto pb-12">
+                <div class="text-center stagger-1">
+                    <h2 class="font-display text-3xl font-bold text-slate-800">System Diagrams</h2>
+                    <p class="text-slate-500 mt-2 text-lg">Architecture, Process Flows, and Data Structures.</p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-2">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-8 border-b pb-2 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">1</span>
+                        System Flowchart: Booking Process
+                    </h3>
+
+                    <div class="flex flex-col items-center gap-6 relative max-w-2xl mx-auto">
+                        <div class="diagram-box shape-oval w-40 hover:bg-emerald-50">Start</div>
+                        <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+
+                        <div class="diagram-box shape-para w-48 hover:bg-orange-50"><div>User Inputs Details</div></div>
+                        <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+
+                        <div class="diagram-box shape-rect w-48 hover:bg-blue-50">System Validates Data</div>
+                        <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+
+                        <div class="diagram-box shape-diamond hover:bg-yellow-50"><div>Valid?</div></div>
+
+                        <div class="w-full flex justify-between px-8 relative -mt-4">
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-1/2 h-0.5 bg-slate-300 self-end mr-[40px] mb-4"></div> <div class="diagram-box shape-rect w-32 border-red-300 bg-red-50 text-red-700 hover:bg-red-100">Display Error</div>
+                                <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+                                <div class="diagram-box shape-oval w-32 border-red-300 bg-red-50 text-red-700 hover:bg-red-100">Stop</div>
+                            </div>
+
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-1/2 h-0.5 bg-slate-300 self-start ml-[40px] mb-4"></div> <div class="diagram-box shape-rect w-32 hover:bg-blue-50">Calc Cost</div>
+                                <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+                                <div class="diagram-box shape-rect w-32 hover:bg-blue-50">Save to DB</div>
+                                <div class="h-6 w-0.5 bg-slate-300 relative arrow-down"></div>
+                                <div class="diagram-box shape-oval w-32 hover:bg-emerald-50">End</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-3">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-2 border-b pb-2 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">2</span>
+                        Data Flow Diagrams (DFD)
+                    </h3>
+
+                    <div class="space-y-12 mt-8">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 text-center font-display">Level 0: Context Diagram</h4>
+                            <div class="flex justify-center items-center gap-8 flex-wrap">
+                                <div class="diagram-box dfd-entity w-32 h-16 hover:bg-slate-200">Admin</div>
+                                <div class="h-0.5 w-16 bg-slate-400 relative arrow-right"></div>
+                                <div class="diagram-box dfd-process w-32 h-32 rounded-full border-4 border-slate-700 bg-slate-100 flex items-center justify-center hover:bg-slate-200 hover:scale-110 transition-all">
+                                    0.0<br>GoParcel<br>System
+                                </div>
+                                <div class="h-0.5 w-16 bg-slate-400 relative arrow-right"></div>
+                                <div class="diagram-box dfd-entity w-32 h-16 hover:bg-slate-200">Customer</div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-slate-200 pt-8">
+                            <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 text-center font-display">Level 1: System Overview</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div class="flex flex-col items-center gap-4 group">
+                                    <div class="diagram-box dfd-entity w-24">Admin</div>
+                                    <div class="h-6 w-0.5 bg-slate-400 relative arrow-down"></div>
+                                    <div class="diagram-box dfd-process w-32 h-24 group-hover:bg-blue-50">1.0<br>Manage<br>Shipment</div>
+                                    <div class="h-6 w-0.5 bg-slate-400 relative arrow-down"></div>
+                                    <div class="diagram-box dfd-store w-32 h-12">D1: Shipments</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-4 pt-12 group">
+                                    <div class="diagram-box dfd-process w-32 h-24 group-hover:bg-blue-50">2.0<br>Calculate<br>Cost</div>
+                                    <div class="h-6 w-0.5 bg-slate-400 relative arrow-down"></div>
+                                    <div class="diagram-box dfd-entity w-24 border-dashed bg-transparent">System Logic</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-4 group">
+                                    <div class="diagram-box dfd-entity w-24">Customer</div>
+                                    <div class="h-6 w-0.5 bg-slate-400 relative arrow-down"></div>
+                                    <div class="diagram-box dfd-process w-32 h-24 group-hover:bg-blue-50">3.0<br>Track<br>Status</div>
+                                    <div class="h-6 w-0.5 bg-slate-400 relative arrow-down"></div>
+                                    <div class="diagram-box dfd-store w-32 h-12">D1: Shipments</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-4">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-6 border-b pb-2 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center text-sm font-bold">3</span>
+                        Activity Diagram (Swimlanes)
+                    </h3>
+                    <div class="grid grid-cols-2 border-2 border-slate-300 divide-x-2 divide-slate-300 bg-slate-50">
+                        <div class="p-3 font-bold bg-slate-200 text-center border-b-2 border-slate-300 text-slate-700 font-display">Admin Actor</div>
+                        <div class="p-3 font-bold bg-slate-200 text-center border-b-2 border-slate-300 text-slate-700 font-display">System</div>
+
+                        <div class="p-6 flex flex-col items-center gap-8 relative h-[500px]">
+                            <div class="w-6 h-6 rounded-full bg-black shadow-lg animate-pulse"></div> <div class="diagram-box shape-rect w-40 hover:bg-white shadow-sm">Login to Dashboard</div>
+                            <div class="diagram-box shape-rect w-40 hover:bg-white shadow-sm">Enter Shipment Info</div>
+                            <div class="h-32"></div> <div class="diagram-box shape-rect w-40 hover:bg-white shadow-sm">View Success Toast</div>
+                            <div class="w-6 h-6 rounded-full border-4 border-black bg-white"></div> </div>
+
+                        <div class="p-6 flex flex-col items-center gap-8 relative h-[500px]">
+                            <div class="h-16"></div> <div class="diagram-box shape-rect w-40 bg-white border-dashed hover:border-solid transition-all">Authenticate User</div>
+                            <div class="h-8"></div>
+                            <div class="diagram-box shape-rect w-40 bg-white border-dashed hover:border-solid transition-all">Validate & Calc Cost</div>
+                            <div class="diagram-box shape-rect w-40 bg-white border-dashed hover:border-solid transition-all">Update Database</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-docs" class="hidden space-y-6 max-w-4xl mx-auto">
+                <div class="text-center mb-8 stagger-1">
+                    <h2 class="font-display text-3xl font-bold text-slate-800">User Guide & Documentation</h2>
+                    <p class="text-slate-500 mt-2 text-lg">Installation instructions and operational manual.</p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-2">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-lg bg-green-500 text-white flex items-center justify-center text-sm"><i class="fas fa-download"></i></span>
+                        Installation & Setup
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-sm font-bold text-brand-primary uppercase mb-2 font-display">1. Prerequisites</h4>
+                            <ul class="list-disc list-inside text-sm text-slate-600 ml-2">
+                                <li>Python 3.x installed on your system.</li>
+                                <li>Pip (Python Package Installer).</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-brand-primary uppercase mb-2 font-display">2. Install Dependencies</h4>
+                            <div class="code-block">pip install flask</div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-brand-primary uppercase mb-2 font-display">3. Initialize Database</h4>
+                            <p class="text-xs text-slate-500 mb-2">Run the database script to create the required tables and schema file.</p>
+                            <div class="code-block">python Database.py</div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-brand-primary uppercase mb-2 font-display">4. Run Application</h4>
+                            <div class="code-block">python App.py</div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-brand-primary uppercase mb-2 font-display">5. Access Portal</h4>
+                            <p class="text-sm text-slate-600">Open your browser and navigate to: <code class="bg-white px-1 rounded border">http://127.0.0.1:5000</code></p>
+                            <div class="mt-3 p-4 bg-brand-primary/10 rounded-xl border border-brand-primary/20">
+                                <p class="text-xs font-bold text-brand-primary mb-1">DEFAULT CREDENTIALS:</p>
+                                <p class="text-sm text-slate-700"><strong>Email:</strong> admin.17193@gmail.com</p>
+                                <p class="text-sm text-slate-700"><strong>Password:</strong> admin@17193</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl border-t-4 border-brand-accent stagger-3">
+                    <h3 class="font-display text-xl font-bold text-slate-800 mb-4">Future Enhancements</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-lock text-brand-accent mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-700 font-display">Role-Based Auth</h4>
+                                <p class="text-xs text-slate-500">Separate logins for Admins, Staff, and Customers.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-credit-card text-brand-accent mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-700 font-display">Payment Gateway</h4>
+                                <p class="text-xs text-slate-500">Integration with Stripe/Razorpay for online payments.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-mobile-alt text-brand-accent mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-700 font-display">Mobile App</h4>
+                                <p class="text-xs text-slate-500">React Native app for delivery drivers to update status on the go.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-envelope-open-text text-brand-accent mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-700 font-display">SMS Alerts</h4>
+                                <p class="text-xs text-slate-500">Automated SMS/Email notifications to customers on status change.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-dashboard" class="hidden space-y-6 max-w-6xl mx-auto">
+                <div class="mb-4 stagger-1">
+                    <p class="text-sm text-slate-500">
+                        <span class="font-bold text-brand-primary">LIVE DEMO:</span> This section replicates the "Admin Dashboard" module described in the report. It uses mock data to demonstrate the visualization capabilities.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 stagger-2">
+                    <div class="glass-panel p-6 rounded-3xl flex items-center gap-5 hover:-translate-y-1 transition-transform cursor-pointer border-l-4 border-brand-primary group">
+                        <div class="w-14 h-14 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-2xl group-hover:bg-brand-primary group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-display">Total Shipments</p>
+                            <h2 class="text-4xl font-display font-bold text-slate-800" id="stat-total">1,245</h2>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex items-center gap-5 hover:-translate-y-1 transition-transform cursor-pointer border-l-4 border-brand-secondary group">
+                        <div class="w-14 h-14 rounded-2xl bg-brand-secondary/10 text-brand-secondary flex items-center justify-center text-2xl group-hover:bg-brand-secondary group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-display">In Transit</p>
+                            <h2 class="text-4xl font-display font-bold text-slate-800" id="stat-transit">84</h2>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex items-center gap-5 hover:-translate-y-1 transition-transform cursor-pointer border-l-4 border-green-500 group">
+                        <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-500 flex items-center justify-center text-2xl group-hover:bg-green-500 group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-display">Delivered</p>
+                            <h2 class="text-4xl font-display font-bold text-slate-800" id="stat-delivered">1,161</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-3 gap-6 stagger-3">
+
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-3xl flex flex-col">
+                        <h3 class="font-display font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-brand-accent"></i> Shipment Status Distribution
+                        </h3>
+                        <div class="flex-1 flex items-center justify-center w-full">
+                            <div class="chart-container">
+                                <canvas id="dashboardChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-3xl flex flex-col h-full">
+                        <h3 class="font-display font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-file-contract text-brand-secondary"></i> Service Guidelines
+                        </h3>
+                        <div class="flex-1 overflow-y-auto pr-2 space-y-3 max-h-[300px] lg:max-h-none scroll-container">
+                            <ul id="guidelines-list" class="space-y-3 text-sm text-slate-600">
+                                </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-operations" class="hidden space-y-6 max-w-4xl mx-auto">
+                <div class="mb-4 stagger-1">
+                    <p class="text-sm text-slate-500">
+                        <span class="font-bold text-brand-primary">LIVE DEMO:</span> Interact with the smart pricing engine described in the report.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl stagger-2">
+                    <h2 class="font-display text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-lg bg-brand-primary text-white flex items-center justify-center text-lg"><i class="fas fa-calculator"></i></span>
+                        Shipment Cost Calculator
+                    </h2>
+
+                    <div class="mb-8 p-4 bg-slate-100 rounded-xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-2 font-display">Pricing Algorithm Logic</h4>
+                        <div class="flex flex-wrap items-center gap-2 text-sm font-mono text-slate-700">
+                            <span class="bg-white px-2 py-1 rounded border">Total Cost</span>
+                            <span>=</span>
+                            <span class="bg-white px-2 py-1 rounded border" title="Base Service Charge">Base(₹50)</span>
+                            <span>+</span>
+                            <span class="bg-white px-2 py-1 rounded border" title="Weight * Rate">Weight * ₹20</span>
+                            <span>+</span>
+                            <span class="bg-white px-2 py-1 rounded border" title="Distance * Rate">Dist * ₹10</span>
+                            <span>+</span>
+                            <span class="bg-white px-2 py-1 rounded border" title="18% Tax">18% GST</span>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-display">Sender Name</label>
+                                <input type="text" placeholder="John Doe" class="w-full bg-white/50 border border-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl px-4 py-3 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-display">Receiver Name</label>
+                                <input type="text" placeholder="Jane Smith" class="w-full bg-white/50 border border-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl px-4 py-3 outline-none transition-all">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-display">Weight (kg)</label>
+                                    <input type="number" id="input-weight" placeholder="0" class="w-full bg-white/50 border border-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl px-4 py-3 outline-none transition-all font-mono font-bold text-brand-dark">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-display">Distance (km)</label>
+                                    <input type="number" id="input-distance" placeholder="0" class="w-full bg-white/50 border border-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl px-4 py-3 outline-none transition-all font-mono font-bold text-brand-dark">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-brand-dark rounded-2xl p-6 text-white flex flex-col justify-between relative overflow-hidden group">
+                            <div class="absolute top-[-20%] right-[-20%] w-40 h-40 bg-brand-accent/20 rounded-full blur-2xl group-hover:bg-brand-accent/30 transition-colors duration-500"></div>
+
+                            <div>
+                                <h4 class="text-slate-400 text-sm font-medium mb-4 font-display">Cost Breakdown</h4>
+                                <ul class="space-y-2 text-sm font-mono">
+                                    <li class="flex justify-between">
+                                        <span class="text-slate-400">Base Rate</span>
+                                        <span>₹50.00</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="text-slate-400">Weight Charge</span>
+                                        <span id="disp-weight-cost">₹0.00</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="text-slate-400">Distance Charge</span>
+                                        <span id="disp-dist-cost">₹0.00</span>
+                                    </li>
+                                    <li class="flex justify-between pt-2 border-t border-white/10">
+                                        <span class="text-slate-400">Subtotal</span>
+                                        <span id="disp-subtotal">₹50.00</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="text-slate-400">GST (18%)</span>
+                                        <span id="disp-gst">₹9.00</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="mt-6 pt-4 border-t border-white/10">
+                                <p class="text-slate-400 text-xs uppercase font-bold mb-1 font-display">Total Estimated Cost</p>
+                                <h2 class="text-4xl font-display font-bold text-brand-accent transition-transform duration-200" id="disp-total">₹59.00</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <button onclick="alert('In a full app, this would save to the SQLite database.')" class="bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all font-display">
+                            Book Shipment
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-tracking" class="hidden space-y-6 max-w-5xl mx-auto">
+                 <div class="mb-4 stagger-1">
+                    <p class="text-sm text-slate-500">
+                        <span class="font-bold text-brand-primary">LIVE DEMO:</span> Simulate the "Live Tracking" and "A4 Invoice" modules. Enter a mock ID (or leave blank for random) to see the visual timeline.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl text-center stagger-2">
+                    <h2 class="font-display text-2xl font-bold text-slate-800 mb-2">Track Your Shipment</h2>
+                    <p class="text-slate-500 mb-6">Enter Shipment ID (e.g., MB_17193001)</p>
+
+                    <div class="flex max-w-md mx-auto gap-2">
+                        <input type="text" id="track-input" placeholder="MB_17193..." class="flex-1 bg-white/50 border border-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl px-4 py-3 outline-none transition-all font-mono">
+                        <button onclick="simulateTracking()" class="bg-brand-primary text-white px-6 rounded-xl font-bold hover:bg-brand-primary/90 transition-colors font-display shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                            Track
+                        </button>
+                    </div>
+                </div>
+
+                <div id="tracking-result" class="hidden glass-panel p-8 rounded-3xl animate-page-enter">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b border-slate-200/50">
+                        <div>
+                            <span class="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded mb-2 inline-block font-display">GoParcel</span>
+                            <h3 class="text-xl font-bold text-slate-800 font-mono" id="res-id">#MB_17193042</h3>
+                            <p class="text-sm text-slate-500" id="res-route">Pune to Mumbai</p>
+                        </div>
+                        <div class="mt-4 md:mt-0 text-right">
+                             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider font-display">Current Status</p>
+                             <h2 class="text-2xl font-bold text-brand-accent font-display" id="res-status">In Transit</h2>
+                        </div>
+                    </div>
+
+                    <div class="relative py-8 px-4">
+                        <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -translate-y-1/2 z-0 rounded-full"></div>
+                        <div id="timeline-progress" class="absolute top-1/2 left-0 w-0 h-1 bg-brand-primary -translate-y-1/2 z-0 transition-all duration-1000 rounded-full"></div>
+
+                        <div class="relative z-10 flex justify-between w-full">
+                            <div class="flex flex-col items-center gap-2 group cursor-default">
+                                <div id="step-1" class="w-10 h-10 rounded-full bg-slate-200 border-4 border-white flex items-center justify-center text-slate-500 transition-all duration-500 shadow-sm group-hover:scale-110">
+                                    <i class="fas fa-box"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 font-display">Booked</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 group cursor-default">
+                                <div id="step-2" class="w-10 h-10 rounded-full bg-slate-200 border-4 border-white flex items-center justify-center text-slate-500 transition-all duration-500 shadow-sm group-hover:scale-110">
+                                    <i class="fas fa-shipping-fast"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 font-display">In Transit</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 group cursor-default">
+                                <div id="step-3" class="w-10 h-10 rounded-full bg-slate-200 border-4 border-white flex items-center justify-center text-slate-500 transition-all duration-500 shadow-sm group-hover:scale-110">
+                                    <i class="fas fa-truck"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 font-display">Out for Delivery</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 group cursor-default">
+                                <div id="step-4" class="w-10 h-10 rounded-full bg-slate-200 border-4 border-white flex items-center justify-center text-slate-500 transition-all duration-500 shadow-sm group-hover:scale-110">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-500 font-display">Delivered</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-center">
+                        <button onclick="showInvoice()" class="flex items-center gap-2 bg-slate-800 text-white px-6 py-3 rounded-xl hover:bg-slate-700 transition-all hover:-translate-y-1 shadow-lg font-display">
+                            <i class="fas fa-file-invoice"></i> Generate Invoice
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <div id="invoice-modal" class="fixed inset-0 z-50 bg-black/80 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white w-full max-w-[210mm] min-h-[297mm] p-12 relative shadow-2xl overflow-y-auto max-h-[90vh] animate-slide-up">
+            <button onclick="hideInvoice()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 text-2xl no-print hover:rotate-90 transition-transform">
+                <i class="fas fa-times-circle"></i>
+            </button>
+            <button onclick="window.print()" class="absolute top-4 right-16 text-slate-400 hover:text-blue-500 text-2xl no-print hover:scale-110 transition-transform">
+                <i class="fas fa-print"></i>
+            </button>
+
+            <div class="flex justify-between items-start border-b-2 border-brand-primary pb-8 mb-8">
+                <div>
+                    <h1 class="text-4xl font-display font-bold text-brand-primary mb-2 tracking-tight">GoParcel</h1>
+                    <p class="text-slate-500 text-sm"><i class="fas fa-globe mr-2"></i>Global Courier Services</p>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-5xl font-display font-bold text-slate-100 uppercase tracking-widest">Invoice</h2>
+                    <p class="font-bold text-slate-700 mt-2 font-mono">#INV-17193042</p>
+                    <p class="text-sm text-slate-500">Date: <span id="inv-date"></span></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-12 mb-12">
+                <div>
+                    <h4 class="text-xs font-bold text-brand-primary uppercase mb-2 font-display">Billed To (Receiver)</h4>
+                    <p class="font-bold text-slate-800">Jane Smith</p>
+                    <p class="text-slate-600 text-sm">101, Sea Breeze Apts,<br>Mumbai, MH - 400001</p>
+                    <p class="text-slate-600 text-sm mt-1"><i class="fas fa-phone-alt text-xs mr-1"></i> +91 9876543210</p>
+                </div>
+                <div class="text-right">
+                    <h4 class="text-xs font-bold text-brand-primary uppercase mb-2 font-display">Shipped From (Sender)</h4>
+                    <p class="font-bold text-slate-800">Tech Solutions Inc.</p>
+                    <p class="text-slate-600 text-sm">45/A, Tech Park, Hinjewadi,<br>Pune, MH - 411057</p>
+                    <p class="text-slate-600 text-sm mt-1"><i class="fas fa-phone-alt text-xs mr-1"></i> +91 9876500000</p>
+                </div>
+            </div>
+
+            <table class="w-full mb-8">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="text-left py-3 px-4 text-xs font-bold text-slate-600 uppercase font-display">Description</th>
+                        <th class="text-right py-3 px-4 text-xs font-bold text-slate-600 uppercase font-display">Weight / Dist</th>
+                        <th class="text-right py-3 px-4 text-xs font-bold text-slate-600 uppercase font-display">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr>
+                        <td class="py-4 px-4 text-sm text-slate-700">
+                            <span class="font-bold block">Standard Courier Package</span>
+                            <span class="text-xs text-slate-500">Logistics Service Charge</span>
+                        </td>
+                        <td class="py-4 px-4 text-right text-sm text-slate-600 font-mono">2.5 Kg / 150 Km</td>
+                        <td class="py-4 px-4 text-right text-sm font-bold text-slate-800 font-mono">₹200.00</td>
+                    </tr>
+                    <tr>
+                        <td class="py-4 px-4 text-sm text-slate-700">GST (18%)</td>
+                        <td class="py-4 px-4 text-right text-sm text-slate-600 font-mono">-</td>
+                        <td class="py-4 px-4 text-right text-sm font-bold text-slate-800 font-mono">₹36.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="flex justify-end mb-16">
+                <div class="bg-brand-primary text-white p-6 rounded-xl w-64 text-right shadow-lg">
+                    <span class="text-sm opacity-80 block mb-1 font-display">Grand Total Payable</span>
+                    <h1 class="text-3xl font-bold font-mono">₹236.00</h1>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-8">
+                <h4 class="text-sm font-bold text-brand-primary mb-2 font-display">Terms & Conditions:</h4>
+                <ul class="text-xs text-slate-500 space-y-1 list-disc pl-4">
+                    <li>Goods are carried at owner's risk.</li>
+                    <li>No claims will be entertained after 30 days of delivery.</li>
+                    <li>This is a computer-generated invoice and requires no signature.</li>
+                </ul>
+            </div>
+
+            <div class="absolute bottom-12 left-0 w-full text-center">
+                <p class="text-xs text-slate-400">GoParcel Head Office: 45/A, Tech Park, Hinjewadi, Pune, MH - 411057</p>
+                <p class="text-xs text-slate-400">support@goparcel.com | www.goparcel.com</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & CONFIG ---
+        const GUIDELINES = [
+            "Proper and secure packaging is mandatory before shipment.",
+            "Fragile/Liquid items must be clearly labeled.",
+            "Delivery times vary based on weather and distance.",
+            "Tracking is available only after booking.",
+            "Prohibited items (explosives, illegal goods) are strictly banned.",
+            "Extra charges apply for overweight/oversized parcels.",
+            "Insurance is recommended for high-value items.",
+            "Accurate address details are required to prevent delays.",
+            "Failed deliveries may incur rebooking charges.",
+            "Valid ID/Signature is required upon delivery."
+        ];
+
+        const BASE_RATE = 50;
+        const RATE_PER_KG = 20;
+        const RATE_PER_KM = 10;
+        const GST_PERCENT = 0.18;
+
+        // --- CHART JS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGuidelines();
+            initChart();
+
+            // Set invoice date
+            document.getElementById('inv-date').innerText = new Date().toLocaleDateString();
+
+            // Setup Calc Listeners
+            const weightIn = document.getElementById('input-weight');
+            const distIn = document.getElementById('input-distance');
+
+            [weightIn, distIn].forEach(input => {
+                input.addEventListener('input', calculateCost);
+            });
+        });
+
+        // --- NAVIGATION ---
+        function navTo(viewId) {
+            // Update Active State on Buttons
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-white/10', 'text-white', 'active-nav', 'scale-105');
+                el.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('bg-white/10', 'text-white', 'active-nav', 'scale-105');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            // Hide all sections and remove animation class
+            document.querySelectorAll('section[id^="view-"]').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('animate-page-enter'); // Reset animation
+            });
+
+            // Show target with new animation
+            const target = document.getElementById(`view-${viewId}`);
+            target.classList.remove('hidden');
+
+            // Force Reflow to restart animation
+            void target.offsetWidth;
+
+            target.classList.add('animate-page-enter');
+
+            // Update Title
+            const titles = {
+                'home': 'Project Overview',
+                'tech': 'Architecture',
+                'diagrams': 'System Diagrams',
+                'docs': 'User Documentation',
+                'dashboard': 'Admin Dashboard',
+                'operations': 'Booking & Pricing',
+                'tracking': 'Live Tracking'
+            };
+            document.getElementById('page-title').innerText = titles[viewId];
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function renderGuidelines() {
+            const list = document.getElementById('guidelines-list');
+            list.innerHTML = GUIDELINES.map((g, i) => `
+                <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-white/40 transition-colors cursor-default border border-transparent hover:border-white/50 animate-slide-up" style="animation-delay: ${i * 0.05}s">
+                    <i class="fas fa-check-circle text-brand-primary mt-1 shrink-0"></i>
+                    <span>${g}</span>
+                </li>
+            `).join('');
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Delivered', 'In Transit', 'Pending'],
+                    datasets: [{
+                        data: [1161, 84, 45], // Mock data based on counters
+                        backgroundColor: [
+                            '#22c55e', // Green
+                            '#ec4899', // Pink (Brand Secondary)
+                            '#6366f1'  // Indigo (Brand Primary)
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    family: "'Plus Jakarta Sans', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    cutout: '75%',
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+        }
+
+        // --- CALCULATOR LOGIC ---
+        function calculateCost() {
+            const w = parseFloat(document.getElementById('input-weight').value) || 0;
+            const d = parseFloat(document.getElementById('input-distance').value) || 0;
+
+            const wCost = w * RATE_PER_KG;
+            const dCost = d * RATE_PER_KM;
+            const subtotal = BASE_RATE + wCost + dCost;
+            const gst = subtotal * GST_PERCENT;
+            const total = subtotal + gst;
+
+            // DOM Updates
+            document.getElementById('disp-weight-cost').innerText = `₹${wCost.toFixed(2)}`;
+            document.getElementById('disp-dist-cost').innerText = `₹${dCost.toFixed(2)}`;
+            document.getElementById('disp-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('disp-gst').innerText = `₹${gst.toFixed(2)}`;
+
+            // Animate Total
+            const totalEl = document.getElementById('disp-total');
+            totalEl.innerText = `₹${total.toFixed(2)}`;
+            totalEl.classList.remove('scale-100');
+            totalEl.classList.add('scale-110', 'text-green-400');
+            setTimeout(() => {
+                totalEl.classList.remove('scale-110', 'text-green-400');
+                totalEl.classList.add('scale-100');
+            }, 200);
+        }
+
+        // --- TRACKING LOGIC ---
+        function simulateTracking() {
+            const input = document.getElementById('track-input').value;
+            const resultPanel = document.getElementById('tracking-result');
+
+            if(!input) {
+                alert("Please enter a shipment ID (e.g., MB_17193001)");
+                return;
+            }
+
+            // Simulate Network Delay
+            const btn = document.querySelector('button[onclick="simulateTracking()"]');
+            const originalText = btn.innerText;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Searching...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                resultPanel.classList.remove('hidden');
+
+                // Add animation class explicitly here for the result panel
+                resultPanel.classList.remove('animate-page-enter');
+                void resultPanel.offsetWidth;
+                resultPanel.classList.add('animate-page-enter');
+
+                // Random Status Logic
+                const statuses = ['Booked', 'In Transit', 'Out for Delivery', 'Delivered'];
+                const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                const statusIndex = statuses.indexOf(randomStatus);
+
+                // Update UI Text
+                document.getElementById('res-id').innerText = `#${input.toUpperCase()}`;
+                document.getElementById('res-status').innerText = randomStatus;
+
+                // Update Progress Bar
+                const progressMap = ['0%', '33%', '66%', '100%'];
+                document.getElementById('timeline-progress').style.width = progressMap[statusIndex];
+
+                // Update Icons
+                for(let i=1; i<=4; i++) {
+                    const step = document.getElementById(`step-${i}`);
+                    if (i <= statusIndex + 1) {
+                        step.classList.remove('bg-slate-200', 'text-slate-500', 'border-white');
+                        step.classList.add('bg-brand-primary', 'text-white', 'border-brand-primary/30', 'scale-110');
+                    } else {
+                        step.classList.add('bg-slate-200', 'text-slate-500', 'border-white');
+                        step.classList.remove('bg-brand-primary', 'text-white', 'border-brand-primary/30', 'scale-110');
+                    }
+                }
+
+            }, 800);
+        }
+
+        // --- INVOICE MODAL ---
+        function showInvoice() {
+            const modal = document.getElementById('invoice-modal');
+            modal.classList.remove('hidden');
+            // Trigger animation
+            modal.querySelector('div').classList.remove('opacity-0', 'translate-y-4');
+        }
+        function hideInvoice() {
+            document.getElementById('invoice-modal').classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
